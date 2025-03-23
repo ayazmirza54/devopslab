@@ -14,6 +14,7 @@ st.set_page_config(
 
 # Function to initialize the Gemini API
 def initialize_gemini_api(api_key):
+    api_key=os.environ.get("GEMINI_API_KEY")
     genai.configure(api_key=api_key)
     
     # Return the Gemini Pro model
