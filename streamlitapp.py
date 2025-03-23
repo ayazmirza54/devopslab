@@ -137,7 +137,7 @@ def main():
         file_name = f"{tool_type}_generated.{file_extension}"
         
         # Display the code
-        st.code(st.session_state.generated_code, language="yaml" if tool_type == "ansible" else "dockerfile" if tool_type == "docker" else "hcl")
+        st.markdown(st.session_state.generated_code, language="yaml" if tool_type == "ansible" else "dockerfile" if tool_type == "docker" else "hcl")
         
         # Download button
         st.download_button(
