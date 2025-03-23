@@ -12,12 +12,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Function to initialize the Gemini API
-def initialize_gemini_api(api_key):
-    api_key=os.environ.get("GEMINI_API_KEY")
+# Function to initialize the Gemini API using the environment variable
+def initialize_gemini_api():
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not found in environment variables.")
     genai.configure(api_key=api_key)
-    
-    # Return the Gemini Pro model
     return genai.GenerativeModel('gemini-1.5-pro')
 
 # Function to generate code based on user input
@@ -56,7 +56,6 @@ The code should:
 5. Handle dependencies properly
 """
     }
-    
     response = model.generate_content(prompts[tool_type])
     return response.text
 
@@ -66,11 +65,11 @@ def main():
     st.markdown("""
     Generate production-ready infrastructure as code using Google's Gemini AI model.
     """)
-    
-    # Sidebar for API key
+
+    # Sidebar configuration (using environment variable for API key)
     with st.sidebar:
         st.header("Configuration")
-        api_key = st.text_input("Enter your Google Gemini API Key", type="password")
+        st.info("Using API key from environment variable: GEMINI_API_KEY")
         st.markdown("---")
         st.markdown("### About")
         st.markdown("""
@@ -79,74 +78,70 @@ def main():
         - Dockerfiles
         - Terraform Configurations
         """)
-    
+
     # Initialize session state for generated code
     if 'generated_code' not in st.session_state:
         st.session_state.generated_code = ""
-    
-    # Main content area
+
+    # Main content area: select tool type
     tool_type = st.radio(
         "Select the type of code to generate:",
         ["ansible", "docker", "terraform"],
-        captions=["Automation with Ansible Playbooks", "Container configurations with Dockerfile", "Infrastructure as Code with Terraform"]
+        index=0,
+        help="Choose the code generation tool that fits your needs."
     )
-    
+
     # Tool-specific inputs
     st.subheader(f"Generate {tool_type.capitalize()} Code")
-    
+
     # Common requirements text area
     requirements = st.text_area(
         "Describe your requirements in detail:",
         height=200,
         placeholder="E.g., For Ansible: Set up a web server with Nginx and deploy a Node.js application...\n"
-                   "For Docker: Create a container for a Python Flask application with Redis...\n"
-                   "For Terraform: Create an AWS infrastructure with a VPC, 2 EC2 instances, and an RDS database..."
+                    "For Docker: Create a container for a Python Flask application with Redis...\n"
+                    "For Terraform: Create an AWS infrastructure with a VPC, 2 EC2 instances, and an RDS database..."
     )
-    
+
     # Generate button
     if st.button("Generate Code", type="primary"):
-        if not api_key:
-            st.error("Please enter your Google Gemini API Key in the sidebar.")
-        elif not requirements:
+        if not requirements:
             st.warning("Please enter your requirements.")
         else:
             try:
                 with st.spinner("Generating code... This may take a moment."):
-                    # Initialize the Gemini model
-                    model = initialize_gemini_api(api_key)
-                    
-                    # Generate code
+                    # Initialize the Gemini model using the environment variable
+                    model = initialize_gemini_api()
+                    # Generate code based on user input
                     st.session_state.generated_code = generate_code(model, tool_type, requirements)
-                
                 st.success("Code generated successfully!")
             except Exception as e:
                 st.error(f"Error generating code: {str(e)}")
-    
-    # Display generated code
+
+    # Display generated code if available
     if st.session_state.generated_code:
         st.subheader("Generated Code")
-        
+
         # Determine file extension based on tool type
         extensions = {
             "ansible": "yml",
             "docker": "Dockerfile",
             "terraform": "tf"
         }
-        
         file_extension = extensions[tool_type]
         file_name = f"{tool_type}_generated.{file_extension}"
-        
-        # Display the code
-               st.markdown(st.session_state.generated_code, unsafe_allow_html=True)
-        
-        # Download button
+
+        # Render the markdown content as received from the API.
+        st.markdown(st.session_state.generated_code, unsafe_allow_html=True)
+
+        # Download button for the generated code
         st.download_button(
             label="Download Code",
             data=st.session_state.generated_code,
             file_name=file_name,
             mime="text/plain"
         )
-        
+
         # Additional information based on tool type
         if tool_type == "ansible":
             st.info("To use this Ansible playbook, save it as a .yml file and run it with `ansible-playbook filename.yml`")
